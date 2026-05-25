@@ -32,6 +32,7 @@
     border-bottom: 3px solid transparent;
     white-space: nowrap;
     transition: all 0.2s;
+    cursor: pointer;
   }
 
   nav a:hover, nav a.active {
@@ -253,10 +254,10 @@
 <body>
 
 <nav>
-  <a class="active" href="javascript:void(0)" onclick="show('visao-geral',this)">Visão Geral</a>
-  <a href="javascript:void(0)" onclick="show('ataques',this)">Os Ataques</a>
-  <a href="javascript:void(0)" onclick="show('como-detecta',this)">Como Detecta</a>
-  <a href="javascript:void(0)" onclick="show('resultados',this)">Resultados Reais</a>
+  <a class="active" onclick="show('visao-geral',this)">Visão Geral</a>
+  <a onclick="show('ataques',this)">Os Ataques</a>
+  <a onclick="show('como-detecta',this)">Como Detecta</a>
+  <a onclick="show('resultados',this)">Resultados Reais</a>
 </nav>
 
 <main>
