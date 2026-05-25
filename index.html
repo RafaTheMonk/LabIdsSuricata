@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab IDS — Suricata</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 18px;
+  }
+
+  nav {
+    background: #161b22;
+    border-bottom: 2px solid #1f6feb;
+    padding: 0 2rem;
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+  }
+
+  nav a {
+    color: #8b949e;
+    text-decoration: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  nav a:hover, nav a.active {
+    color: #f0f6fc;
+    border-bottom-color: #1f6feb;
+  }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  section { display: none; }
+  section.active { display: block; }
+
+  h1 {
+    font-size: 2.2rem;
+    color: #f0f6fc;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    color: #79c0ff;
+    margin: 2rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #30363d;
+  }
+
+  p {
+    color: #c9d1d9;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  .subtitle {
+    color: #8b949e;
+    font-size: 1.1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.75rem;
+  }
+
+  .card .icon { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
+  .card h3 { font-size: 1.2rem; color: #f0f6fc; margin-bottom: 0.5rem; }
+  .card p { font-size: 0.95rem; color: #8b949e; margin: 0; }
+  .card.border-green { border-left: 4px solid #238636; }
+  .card.border-red   { border-left: 4px solid #da3633; }
+
+  .attack-block {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .attack-block .number {
+    display: inline-block;
+    background: #da3633;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.2rem 0.7rem;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+  }
+
+  .attack-block h3 {
+    font-size: 1.25rem;
+    color: #f0f6fc;
+    margin-bottom: 0.5rem;
+  }
+
+  .attack-block .cmd {
+    background: #0d1117;
+    color: #79c0ff;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 1rem;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    margin: 0.75rem 0;
+    display: block;
+  }
+
+  .attack-block p { margin: 0; font-size: 0.95rem; }
+
+  .detected {
+    display: inline-block;
+    background: #1a3d1a;
+    color: #7ee787;
+    border: 1px solid #238636;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+  }
+
+  .alert-log {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-left: 4px solid #da3633;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.9;
+  }
+
+  .alert-log .ts   { color: #6e7681; }
+  .alert-log .sig  { color: #ffa657; font-weight: bold; }
+  .alert-log .ip   { color: #79c0ff; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .stat {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .stat .num {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #79c0ff;
+    line-height: 1;
+    display: block;
+  }
+
+  .stat .label {
+    color: #8b949e;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    display: block;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    margin: 1rem 0;
+  }
+
+  th {
+    background: #161b22;
+    color: #8b949e;
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #30363d;
+  }
+
+  td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #161b22; }
+
+  .ok  { color: #7ee787; font-weight: 700; }
+  .no  { color: #8b949e; }
+  .warn { color: #e3b341; }
+
+  code {
+    background: #1c2128;
+    color: #79c0ff;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+
+  .note {
+    background: #1a2332;
+    border: 1px solid #1f6feb;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    color: #c9d1d9;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .note strong { color: #79c0ff; }
+
+  @media (max-width: 640px) {
+    .cards { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="active" href="#" onclick="show('visao-geral',this)">Visão Geral</a>
+  <a href="#" onclick="show('ataques',this)">Os Ataques</a>
+  <a href="#" onclick="show('como-detecta',this)">Como Detecta</a>
+  <a href="#" onclick="show('resultados',this)">Resultados Reais</a>
+</nav>
+
+<main>
+
+<!-- ══════════ VISÃO GERAL ══════════ -->
+<section id="visao-geral" class="active">
+  <h1>🛡️ Lab de Detecção de Intrusão</h1>
+  <p class="subtitle">Suricata IDS + Ataques reais — tudo na mesma máquina Linux</p>
+
+  <div class="cards">
+    <div class="card border-green">
+      <span class="icon">🛡️</span>
+      <h3>Suricata — Defensor</h3>
+      <p>IDS open-source que monitora o tráfego de rede em tempo real e gera alertas quando detecta comportamento suspeito.</p>
+    </div>
+    <div class="card border-red">
+      <span class="icon">⚔️</span>
+      <h3>Nmap / Ping / Curl — Invasor</h3>
+      <p>Ferramentas reais de pentest executando port scan, flood ICMP e requisições HTTP maliciosas contra a própria máquina.</p>
+    </div>
+  </div>
+
+  <h2>Como funciona o lab</h2>
+  <p>Tudo roda em <strong>uma única máquina</strong>. O atacante e o defensor são o mesmo computador.</p>
+  <p>O Suricata monitora a interface <code>lo</code> (loopback) em modo <strong>pcap</strong> — assim captura tráfego interno que vai de <code>127.0.0.1</code> para <code>127.0.0.1</code>.</p>
+  <p>Quando um ataque gera tráfego suspeito, o Suricata compara com suas <strong>8 regras personalizadas</strong> e gera alertas em tempo real nos logs.</p>
+
+  <div class="note">
+    <strong>Objetivo:</strong> demonstrar que um IDS detecta padrões de ataque pelo <em>comportamento</em> do tráfego — não pelo conteúdo dos arquivos ou pelo antivírus.
+  </div>
+</section>
+
+<!-- ══════════ ATAQUES ══════════ -->
+<section id="ataques">
+  <h1>⚔️ Os 4 Ataques</h1>
+  <p class="subtitle">Técnicas reais de reconhecimento usadas em pentests</p>
+
+  <div class="attack-block">
+    <span class="number">ATAQUE 1</span>
+    <h3>Port Scan SYN — Reconhecimento de portas</h3>
+    <code>nmap -sS 127.0.0.1</code>
+    <p>Envia pacote SYN para centenas de portas <strong>sem completar a conexão</strong>. O objetivo é descobrir quais portas estão abertas sem deixar rastro no log do servidor alvo.</p>
+    <span class="detected">✓ Detectado — SID 9000001</span>
+  </div>
+
+  <div class="attack-block">
+    <span class="number">ATAQUE 2</span>
+    <h3>Scan Agressivo — Identificação do sistema</h3>
+    <code>nmap -A 127.0.0.1</code>
+    <p>Detecta sistema operacional, versões de serviços e roda scripts automatizados. Gera muito mais tráfego — inclui scans NULL e XMAS internamente.</p>
+    <span class="detected">✓ Detectado — SID 9000002, 9000004, 9000005</span>
+  </div>
+
+  <div class="attack-block">
+    <span class="number">ATAQUE 3</span>
+    <h3>ICMP Flood — Negação de serviço</h3>
+    <code>ping -f -c 100 127.0.0.1</code>
+    <p>Envia 100 pings em <strong>modo flood</strong> (velocidade máxima — 100 pacotes em ~2ms). Simula ataque de negação de serviço por volume.</p>
+    <span class="detected">✓ Detectado — SID 9000010</span>
+  </div>
+
+  <div class="attack-block">
+    <span class="number">ATAQUE 4</span>
+    <h3>HTTP Suspeito — Scanner e Path Traversal</h3>
+    <code>curl -A "sqlmap/1.0" http://127.0.0.1:8080/</code>
+    <code>curl http://127.0.0.1:8080/etc/passwd</code>
+    <p>Primeira requisição imita o scanner SQLMap pelo User-Agent. Segunda tenta acessar <code>/etc/passwd</code> diretamente — técnica de Path Traversal / LFI.</p>
+    <span class="detected">✓ Detectado — SID 9000020, 9000022</span>
+  </div>
+</section>
+
+<!-- ══════════ COMO DETECTA ══════════ -->
+<section id="como-detecta">
+  <h1>🔍 Como o Suricata Detecta</h1>
+  <p class="subtitle">Duas abordagens: volume de pacotes e assinatura de conteúdo</p>
+
+  <h2>Abordagem 1 — Threshold (volume)</h2>
+  <p>Para port scan e ICMP flood, a regra conta <strong>quantos pacotes chegam em quanto tempo</strong>. Um único SYN é normal. 20 SYN em 3 segundos é port scan.</p>
+
+  <div class="alert-log">
+    <span class="ts"># Regra de port scan:</span><br>
+    alert tcp any any <span class="sig">-></span> any any (<br>
+    &nbsp;&nbsp;msg:<span class="sig">"LAB PORT SCAN SYN scan"</span>;<br>
+    &nbsp;&nbsp;flags:<span class="sig">S</span>;  <span class="ts">← só pacotes SYN</span><br>
+    &nbsp;&nbsp;detection_filter: track by_src,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;count <span class="sig">20</span>, seconds <span class="sig">3</span>;  <span class="ts">← 20 em 3s = alerta</span><br>
+    &nbsp;&nbsp;sid:9000001;<br>
+    )
+  </div>
+
+  <h2>Abordagem 2 — Assinatura (conteúdo)</h2>
+  <p>Para ataques HTTP, a regra procura <strong>strings específicas</strong> no conteúdo do pacote — User-Agent, URI, etc.</p>
+
+  <div class="alert-log">
+    <span class="ts"># Regra SQLMap:</span><br>
+    alert http any any -> any any (<br>
+    &nbsp;&nbsp;msg:<span class="sig">"LAB HTTP SQLMAP user-agent"</span>;<br>
+    &nbsp;&nbsp;http.user_agent; content:<span class="sig">"sqlmap"</span>; nocase;<br>
+    &nbsp;&nbsp;<span class="ts">← encontrou "sqlmap" no header = alerta imediato</span><br>
+    &nbsp;&nbsp;sid:9000020;<br>
+    )
+  </div>
+
+  <h2>Onde ficam os alertas</h2>
+  <p>Dois arquivos de log são gerados automaticamente:</p>
+  <table>
+    <thead><tr><th>Arquivo</th><th>Formato</th><th>Uso</th></tr></thead>
+    <tbody>
+      <tr><td><code>/var/log/suricata/fast.log</code></td><td>Texto simples</td><td>Leitura humana rápida</td></tr>
+      <tr><td><code>/var/log/suricata/eve.json</code></td><td>JSON estruturado</td><td>Integração com SIEM (Splunk, Elastic)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════ RESULTADOS ══════════ -->
+<section id="resultados">
+  <h1>📊 Resultados Reais do Lab</h1>
+  <p class="subtitle">Execução real — 25/05/2026 às 19:00</p>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <span class="num">2.980</span>
+      <span class="label">Alertas totais gerados</span>
+    </div>
+    <div class="stat">
+      <span class="num">2.165</span>
+      <span class="label">Alertas das regras LAB</span>
+    </div>
+    <div class="stat">
+      <span class="num">7/8</span>
+      <span class="label">Regras que dispararam</span>
+    </div>
+  </div>
+
+  <h2>Resultado por regra</h2>
+  <table>
+    <thead>
+      <tr><th>SID</th><th>Regra</th><th>Ataque</th><th>Resultado</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>9000001</td>
+        <td>PORT SCAN SYN scan</td>
+        <td><code>nmap -sS</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+      <tr>
+        <td>9000002</td>
+        <td>PORT SCAN NULL scan</td>
+        <td><code>nmap -A</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+      <tr>
+        <td>9000004</td>
+        <td>PORT SCAN XMAS scan</td>
+        <td><code>nmap -A</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+      <tr>
+        <td>9000005</td>
+        <td>PORT SCAN agressivo</td>
+        <td><code>nmap -A</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+      <tr>
+        <td>9000010</td>
+        <td>ICMP FLOOD ping flood</td>
+        <td><code>ping -f</code></td>
+        <td class="ok">✓ Disparou (~100x)</td>
+      </tr>
+      <tr>
+        <td>9000020</td>
+        <td>HTTP SQLMAP user-agent</td>
+        <td><code>curl -A sqlmap</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+      <tr>
+        <td>9000021</td>
+        <td>HTTP PATH TRAVERSAL ../</td>
+        <td><code>curl /../etc/</code></td>
+        <td class="no">— curl normaliza URL</td>
+      </tr>
+      <tr>
+        <td>9000022</td>
+        <td>HTTP PATH TRAVERSAL passwd</td>
+        <td><code>curl /etc/passwd</code></td>
+        <td class="ok">✓ Disparou</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Por que 9000021 não disparou?</strong> O curl normaliza a URL antes de enviar — <code>/../etc/passwd</code> vira <code>/etc/passwd</code> automaticamente. O servidor nunca recebe os <code>../</code>. A regra 9000022 compensou detectando <code>/etc/passwd</code> na URI.
+  </div>
+
+  <h2>Exemplo real de alertas gerados</h2>
+  <div class="alert-log">
+    <span class="ts">19:00:19</span>  🔴  <span class="sig">LAB PORT SCAN NULL scan</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="ip">127.0.0.1:43910</span> → <span class="ip">127.0.0.1:8080</span><br><br>
+    <span class="ts">19:00:25</span>  🔴  <span class="sig">LAB PORT SCAN SYN scan</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="ip">127.0.0.1:38724</span> → <span class="ip">127.0.0.1:8080</span><br><br>
+    <span class="ts">19:00:29</span>  🔴  <span class="sig">LAB ICMP FLOOD ping flood</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="ip">127.0.0.1</span> → <span class="ip">127.0.0.1</span><br><br>
+    <span class="ts">19:00:33</span>  🔴  <span class="sig">LAB HTTP SQLMAP user-agent</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="ip">127.0.0.1:40288</span> → <span class="ip">127.0.0.1:8080</span><br><br>
+    <span class="ts">19:00:37</span>  🔴  <span class="sig">LAB HTTP PATH TRAVERSAL etc/passwd</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="ip">127.0.0.1:40294</span> → <span class="ip">127.0.0.1:8080</span>
+  </div>
+
+  <div class="note">
+    <strong>Alertas ⚪ brancos (TCPv4 invalid checksum):</strong> comportamento normal do loopback Linux. O kernel desativa verificação de checksum na interface <code>lo</code> por otimização. Não são erros — são alertas informativos do próprio Suricata.
+  </div>
+</section>
+
+</main>
+
+<script>
+function show(id, link) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  link.classList.add('active');
+  return false;
+}
+</script>
+</body>
+</html>
